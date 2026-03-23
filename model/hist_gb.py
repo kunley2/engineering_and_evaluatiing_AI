@@ -27,7 +27,7 @@ class HistGB(BaseModel):
 
 
     def print_results(self, data):
-        print("classification report:", classification_report(data.y_test, self.predictions))
+        print("classification report:", classification_report(data.y_test, self.predictions, zero_division=0))
         print("-------------" * 5, "\n")
         print("confussion matrix:", confusion_matrix(data.y_test, self.predictions))
         print("-------------" * 5,"\n")
