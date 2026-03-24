@@ -4,7 +4,7 @@ import random
 from preprocessing import get_input_data, remove_duplication, noise_remover
 from embeddings import get_tfidf_embd
 from data_loader import Data
-from model import RandomForest
+from model import RandomForest, HierarchyModel
 from model import AdaBoost
 from model import HistGB
 from model import SGD
@@ -46,37 +46,43 @@ class Pipeline:
         model.train(data)
         model.predict(data.X_test)
         model.print_results(data)
-
-        print("Hist_GB")
-        model = HistGB("Hist_GB", data.get_embeddings(), data.get_type())
-        model.train(data)
-        model.predict(data.X_test)
-        res = model.print_results(data)
-        results.append(res)
-
-        print("SGD")
-        model = SGD("SGD", data.get_embeddings(), data.get_type())
+        
+        print("HierarchyModel")
+        model = HierarchyModel("RandomForest", data.get_embeddings(), data.get_type())
         model.train(data)
         model.predict(data.X_test)
         model.print_results(data)
 
-        print("AdaBoost")
-        model = AdaBoost("AdaBoost", data.get_embeddings(), data.get_type())
-        model.train(data)
-        model.predict(data.X_test)
-        model.print_results(data)
+        # print("Hist_GB")
+        # model = HistGB("Hist_GB", data.get_embeddings(), data.get_type())
+        # model.train(data)
+        # model.predict(data.X_test)
+        # res = model.print_results(data)
+        # results.append(res)
 
-        print("Voting")
-        model = Voting("Voting", data.get_embeddings(), data.get_type())
-        model.train(data)
-        model.predict(data.X_test)
-        model.print_results(data)
+        # print("SGD")
+        # model = SGD("SGD", data.get_embeddings(), data.get_type())
+        # model.train(data)
+        # model.predict(data.X_test)
+        # model.print_results(data)
 
-        print("RandomTreesEmbedding")
-        model = RandomTreesEnsemble("RandomTreesEmbedding", data.get_embeddings(), data.get_type())
-        model.train(data)
-        model.predict(data.X_test)
-        model.print_results(data)
+        # print("AdaBoost")
+        # model = AdaBoost("AdaBoost", data.get_embeddings(), data.get_type())
+        # model.train(data)
+        # model.predict(data.X_test)
+        # model.print_results(data)
+
+        # print("Voting")
+        # model = Voting("Voting", data.get_embeddings(), data.get_type())
+        # model.train(data)
+        # model.predict(data.X_test)
+        # model.print_results(data)
+
+        # print("RandomTreesEmbedding")
+        # model = RandomTreesEnsemble("RandomTreesEmbedding", data.get_embeddings(), data.get_type())
+        # model.train(data)
+        # model.predict(data.X_test)
+        # model.print_results(data)
 
     def perform_modelling(self, data, df, name):
         self.model_predict(data, df, name)
