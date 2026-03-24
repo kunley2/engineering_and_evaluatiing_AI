@@ -17,6 +17,14 @@ class Pipeline:
         seed = Config.RANDOM_STATE
         random.seed(seed)
         np.random.seed(seed)
+        self.base_model_classes = {
+            "RandomForest": RandomForest,
+            "Hist_GB": HistGB,
+            "SGD": SGD,
+            "AdaBoost": AdaBoost,
+            "Voting": Voting,
+            "RandomTreesEmbedding": RandomTreesEnsemble,
+        }
 
     def load_data(self):
         # load the input data
@@ -39,50 +47,33 @@ class Pipeline:
     def get_data_object(self, X: np.ndarray, df: pd.DataFrame):
         return Data(X, df)
 
+    def run_single_model(self, model_name, model, data):
+        print(model_name)
+        model.train(data)
+        model.predict(data.X_test)
+        model.print_results(data)
+
+    def build_flat_model(self, model_name, data):
+        return self.base_model_classes[model_name](model_name, data.get_embeddings(), data.get_type())
+
+    def build_hierarchy_model(self, base_model_name, data):
+        hierarchy_name = f"HierarchyModel[{base_model_name}]"
+        return HierarchyModel(
+            hierarchy_name,
+            data.get_embeddings(),
+            data.get_type(),
+            base_model_name=base_model_name,
+        )
+
     def model_predict(self, data, df, name):
-        results = []
-        print("RandomForest")
-        model = RandomForest("RandomForest", data.get_embeddings(), data.get_type())
-        model.train(data)
-        model.predict(data.X_test)
-        model.print_results(data)
-        
-        print("HierarchyModel")
-        model = HierarchyModel("RandomForest", data.get_embeddings(), data.get_type())
-        model.train(data)
-        model.predict(data.X_test)
-        model.print_results(data)
+        for model_name in Config.FLAT_MODELS:
+            model = self.build_flat_model(model_name, data)
+            self.run_single_model(model_name, model, data)
 
-        # print("Hist_GB")
-        # model = HistGB("Hist_GB", data.get_embeddings(), data.get_type())
-        # model.train(data)
-        # model.predict(data.X_test)
-        # res = model.print_results(data)
-        # results.append(res)
-
-        # print("SGD")
-        # model = SGD("SGD", data.get_embeddings(), data.get_type())
-        # model.train(data)
-        # model.predict(data.X_test)
-        # model.print_results(data)
-
-        # print("AdaBoost")
-        # model = AdaBoost("AdaBoost", data.get_embeddings(), data.get_type())
-        # model.train(data)
-        # model.predict(data.X_test)
-        # model.print_results(data)
-
-        # print("Voting")
-        # model = Voting("Voting", data.get_embeddings(), data.get_type())
-        # model.train(data)
-        # model.predict(data.X_test)
-        # model.print_results(data)
-
-        # print("RandomTreesEmbedding")
-        # model = RandomTreesEnsemble("RandomTreesEmbedding", data.get_embeddings(), data.get_type())
-        # model.train(data)
-        # model.predict(data.X_test)
-        # model.print_results(data)
+        for base_model_name in Config.HIERARCHY_BASE_MODELS:
+            hierarchy_name = f"HierarchyModel[{base_model_name}]"
+            model = self.build_hierarchy_model(base_model_name, data)
+            self.run_single_model(hierarchy_name, model, data)
 
     def perform_modelling(self, data, df, name):
         self.model_predict(data, df, name)
@@ -98,4 +89,3 @@ class Pipeline:
             X, group_df = self.get_embeddings(group_df)
             data = self.get_data_object(X, group_df)
             self.perform_modelling(data, group_df, name)
-

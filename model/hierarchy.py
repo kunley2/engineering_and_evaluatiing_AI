@@ -46,20 +46,17 @@ class HierarchyModel(BaseModel):
         self.data_transform()
 
     def _build_base_model(self, y):
-        if self.base_model_name == "RandomForest":
-            return RandomForest(self.base_model_name, self.embeddings, y)
-        if self.base_model_name == "Hist_GB":
-            return HistGB(self.base_model_name, self.embeddings, y)
-        if self.base_model_name == "SGD":
-            return SGD(self.base_model_name, self.embeddings, y)
-        if self.base_model_name == "AdaBoost":
-            return AdaBoost(self.base_model_name, self.embeddings, y)
-        if self.base_model_name == "Voting":
-            return Voting(self.base_model_name, self.embeddings, y)
-        if self.base_model_name == "RandomTreesEmbedding":
-            return RandomTreesEnsemble(self.base_model_name, self.embeddings, y)
-
-        raise ValueError(f"Unsupported base model: {self.base_model_name}")
+        base_models = {
+            "RandomForest": RandomForest,
+            "Hist_GB": HistGB,
+            "SGD": SGD,
+            "AdaBoost": AdaBoost,
+            "Voting": Voting,
+            "RandomTreesEmbedding": RandomTreesEnsemble,
+        }
+        if self.base_model_name not in base_models:
+            raise ValueError(f"Unsupported base model: {self.base_model_name}")
+        return base_models[self.base_model_name](self.base_model_name, self.embeddings, y)
 
     def train(self, data) -> None:
         if data.y2_train is None or data.y3_train is None or data.y4_train is None:

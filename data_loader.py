@@ -156,7 +156,7 @@ class Data:
         y_test = branch_test_df[target_level].to_numpy()
 
         train_counts = pd.Series(y_train).value_counts()
-        valid_classes = train_counts[train_counts >= 3].index
+        valid_classes = train_counts[train_counts >= Config.MIN_CLASS_COUNT].index
 
         keep_train = pd.Series(y_train).isin(valid_classes).to_numpy()
         keep_test = pd.Series(y_test).isin(valid_classes).to_numpy()
