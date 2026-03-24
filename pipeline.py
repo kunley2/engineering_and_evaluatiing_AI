@@ -5,7 +5,7 @@ from preprocessing import get_input_data, remove_duplication, noise_remover
 from embeddings import get_tfidf_embd
 from chain_targets import build_chained_targets
 from data_loader import ChainedData
-from model import RandomForest, HierarchyModel
+from model import RandomForest
 from model import AdaBoost
 from model import HistGB
 from model import SGD
@@ -59,30 +59,8 @@ class Pipeline:
                 model.predict(data.get_X_test())
                 model.print_results(data)
 
-    def build_flat_model(self, model_name, data):
-        return self.base_model_classes[model_name](model_name, data.get_embeddings(), data.get_type())
-
-    def build_hierarchy_model(self, base_model_name, data):
-        hierarchy_name = f"HierarchyModel[{base_model_name}]"
-        return HierarchyModel(
-            hierarchy_name,
-            data.get_embeddings(),
-            data.get_type(),
-            base_model_name=base_model_name,
-        )
-
-    def model_predict(self, data, df, name):
-        for model_name in Config.FLAT_MODELS:
-            model = self.build_flat_model(model_name, data)
-            self.run_single_model(model_name, model, data)
-
-        for base_model_name in Config.HIERARCHY_BASE_MODELS:
-            hierarchy_name = f"HierarchyModel[{base_model_name}]"
-            model = self.build_hierarchy_model(base_model_name, data)
-            self.run_single_model(hierarchy_name, model, data)
-
-    def perform_modelling(self, data, df, name):
-        self.model_predict(data, df, name)
+    def perform_modelling(self, data, name):
+        self.model_predict(data, name)
 
     def run(self):
         df = self.load_data()
