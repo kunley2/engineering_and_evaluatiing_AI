@@ -3,7 +3,8 @@ import pandas as pd
 import random
 from preprocessing import get_input_data, remove_duplication, noise_remover
 from embeddings import get_tfidf_embd
-from data_loader import Data
+from chain_targets import build_chained_targets
+from data_loader import ChainedData
 from model import RandomForest, HierarchyModel
 from model import AdaBoost
 from model import HistGB
@@ -17,14 +18,14 @@ class Pipeline:
         seed = Config.RANDOM_STATE
         random.seed(seed)
         np.random.seed(seed)
-        self.base_model_classes = {
-            "RandomForest": RandomForest,
-            "Hist_GB": HistGB,
-            "SGD": SGD,
-            "AdaBoost": AdaBoost,
-            "Voting": Voting,
-            "RandomTreesEmbedding": RandomTreesEnsemble,
-        }
+        self.model_classes = [
+            ("RandomForest", RandomForest),
+            ("Hist_GB", HistGB),
+            ("SGD", SGD),
+            ("AdaBoost", AdaBoost),
+            ("Voting", Voting),
+            ("RandomTreesEmbedding", RandomTreesEnsemble),
+        ]
 
     def load_data(self):
         # load the input data
@@ -45,13 +46,18 @@ class Pipeline:
         return X, df
 
     def get_data_object(self, X: np.ndarray, df: pd.DataFrame):
-        return Data(X, df)
+        return ChainedData(X, df, Config.CHAIN_TARGET_COLUMNS)
 
-    def run_single_model(self, model_name, model, data):
-        print(model_name)
-        model.train(data)
-        model.predict(data.X_test)
-        model.print_results(data)
+    def model_predict(self, data, name):
+        for target_name in data.get_target_names():
+            data.set_active_target(target_name)
+            print(f"{name} | {target_name}")
+            for model_name, model_class in self.model_classes:
+                print(model_name)
+                model = model_class(model_name, data.get_embeddings(), data.get_type())
+                model.train(data)
+                model.predict(data.get_X_test())
+                model.print_results(data)
 
     def build_flat_model(self, model_name, data):
         return self.base_model_classes[model_name](model_name, data.get_embeddings(), data.get_type())
@@ -86,6 +92,10 @@ class Pipeline:
         grouped_df = df.groupby(Config.GROUPED)
         for name, group_df in grouped_df:
             print(name)
+            group_df = build_chained_targets(group_df)
             X, group_df = self.get_embeddings(group_df)
             data = self.get_data_object(X, group_df)
-            self.perform_modelling(data, group_df, name)
+            if not data.get_target_names():
+                print(f"Skipping {name}: no valid chained targets found.")
+                continue
+            self.perform_modelling(data, name)

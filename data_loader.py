@@ -120,64 +120,96 @@ class Data:
     def get_X_DL_train(self):
         return self.X_DL_train
 
-    def get_level_target(self, level: str, split: str = "train"):
-        mapping = {
-            ("y2", "train"): self.y2_train,
-            ("y2", "test"): self.y2_test,
-            ("y3", "train"): self.y3_train,
-            ("y3", "test"): self.y3_test,
-            ("y4", "train"): self.y4_train,
-            ("y4", "test"): self.y4_test,
-            ("y23", "train"): getattr(self, "y23_train", None),
-            ("y23", "test"): getattr(self, "y23_test", None),
-            ("y234", "train"): getattr(self, "y234_train", None),
-            ("y234", "test"): getattr(self, "y234_test", None),
-        }
-        return mapping[(level, split)]
 
-    def get_branch_data(self, target_level: str, parent_filters: dict):
-        train_mask = np.ones(len(self.train_df), dtype=bool)
-        test_mask = np.ones(len(self.test_df), dtype=bool)
+class ChainedData:
+    def __init__(
+        self,
+        X: np.ndarray,
+        df: pd.DataFrame,
+        target_columns: dict[str, str],
+    ) -> None:
+        self.X = X
+        self.df = df
+        self.embeddings = X
+        self.target_columns = target_columns
+        self.target_splits: dict[str, dict[str, np.ndarray | pd.Index]] = {}
+        self.active_target: str | None = None
 
-        for col, value in parent_filters.items():
-            train_mask &= (self.train_df[col].to_numpy() == value)
-            test_mask &= (self.test_df[col].to_numpy() == value)
+        for target_name, column_name in target_columns.items():
+            target_series = df[column_name].astype(str)
+            valid_classes = (
+                target_series.value_counts()[target_series.value_counts() >= Config.MIN_CLASS_COUNT].index
+            )
+            valid_mask = target_series.isin(valid_classes)
 
-        branch_train_df = self.train_df.loc[train_mask].reset_index(drop=True)
-        branch_test_df = self.test_df.loc[test_mask].reset_index(drop=True)
+            if len(valid_classes) < 2 or valid_mask.sum() < 2:
+                continue
 
-        branch_X_train = self.X_train[train_mask]
-        branch_X_test = self.X_test[test_mask]
+            X_target = X[valid_mask.to_numpy()]
+            y_target = target_series[valid_mask].to_numpy()
+            test_size = min(
+                X.shape[0] * Config.TEST_SIZE / X_target.shape[0],
+                0.5,
+            )
+            split_kwargs = {
+                "test_size": test_size,
+                "random_state": Config.RANDOM_STATE,
+            }
+            try:
+                X_train, X_test, y_train, y_test = train_test_split(
+                    X_target,
+                    y_target,
+                    stratify=y_target,
+                    **split_kwargs,
+                )
+            except ValueError:
+                X_train, X_test, y_train, y_test = train_test_split(
+                    X_target,
+                    y_target,
+                    **split_kwargs,
+                )
+            self.target_splits[target_name] = {
+                "X_train": X_train,
+                "X_test": X_test,
+                "y_train": y_train,
+                "y_test": y_test,
+                "y_all": y_target,
+                "classes": valid_classes,
+            }
 
-        if branch_train_df.empty or branch_test_df.empty:
-            return None
+        if self.target_splits:
+            self.set_active_target(next(iter(self.target_splits)))
 
-        y_train = branch_train_df[target_level].to_numpy()
-        y_test = branch_test_df[target_level].to_numpy()
+    def get_target_names(self) -> list[str]:
+        return list(self.target_splits.keys())
 
-        train_counts = pd.Series(y_train).value_counts()
-        valid_classes = train_counts[train_counts >= Config.MIN_CLASS_COUNT].index
+    def set_active_target(self, target_name: str) -> None:
+        split = self.target_splits[target_name]
+        self.active_target = target_name
+        self.X_train = split["X_train"]
+        self.X_test = split["X_test"]
+        self.y_train = split["y_train"]
+        self.y_test = split["y_test"]
+        self.y = split["y_all"]
+        self.classes = split["classes"]
 
-        keep_train = pd.Series(y_train).isin(valid_classes).to_numpy()
-        keep_test = pd.Series(y_test).isin(valid_classes).to_numpy()
+    def get_active_target(self) -> str | None:
+        return self.active_target
 
-        branch_train_df = branch_train_df.loc[keep_train].reset_index(drop=True)
-        branch_test_df = branch_test_df.loc[keep_test].reset_index(drop=True)
+    def get_type(self):
+        return self.y
 
-        branch_X_train = branch_X_train[keep_train]
-        branch_X_test = branch_X_test[keep_test]
+    def get_X_train(self):
+        return self.X_train
 
-        y_train = branch_train_df[target_level].to_numpy()
-        y_test = branch_test_df[target_level].to_numpy()
+    def get_X_test(self):
+        return self.X_test
 
-        if len(pd.unique(y_train)) < 2:
-            return None
+    def get_type_y_train(self):
+        return self.y_train
 
-        return {
-            "X_train": branch_X_train,
-            "X_test": branch_X_test,
-            "y_train": y_train,
-            "y_test": y_test,
-            "train_df": branch_train_df,
-            "test_df": branch_test_df,
-        }
+    def get_type_y_test(self):
+        return self.y_test
+
+    def get_embeddings(self):
+        return self.embeddings

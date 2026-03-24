@@ -13,5 +13,10 @@ class Config:
     TYPE_COLS = ['y2', 'y3', 'y4']
     CLASS_COL = 'y2'
     GROUPED = 'y1'
-    FLAT_MODELS = ['RandomForest']
-    HIERARCHY_BASE_MODELS = ['RandomForest']
+    MISSING_LABEL = '<missing>'
+    CHAIN_SEPARATOR = ' || '
+    CHAIN_TARGET_COLUMNS = {
+        'Type 2': 'chain_y2',
+        'Type 2 + Type 3': 'chain_y2_y3',
+        'Type 2 + Type 3 + Type 4': 'chain_y2_y3_y4',
+    }
