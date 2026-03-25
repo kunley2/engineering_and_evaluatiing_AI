@@ -9,49 +9,25 @@ random.seed(seed)
 np.random.seed(seed)
 
 
-class Data:
-    def __init__(self, X: np.ndarray, df: pd.DataFrame) -> None:
+class Data():
+    def __init__(self,
+                 X: np.ndarray,
+                 df: pd.DataFrame) -> None:
         self.X = X
-        self.df = df.reset_index(drop=True).copy()
-        self._build_original_split()
-        self._attach_hierarchy_views()
-
-    def _build_original_split(self):
-        X_DL = self.df[Config.TICKET_SUMMARY] + ' ' + self.df[Config.INTERACTION_CONTENT]
+        self.df = df
+        X_DL = df[Config.TICKET_SUMMARY] + ' ' + df[Config.INTERACTION_CONTENT]
         X_DL = X_DL.to_numpy()
-
-        y = self.df["y"].to_numpy()
+        y = df.y.to_numpy()
         y_series = pd.Series(y)
-
         good_y_value = y_series.value_counts()[y_series.value_counts() >= 3].index
-
-        good_mask = y_series.isin(good_y_value).to_numpy()
-
-        y_good = y[good_mask]
-        X_good = self.X[good_mask]
-        df_good = self.df.loc[good_mask].reset_index(drop=True)
-        X_DL_good = X_DL[good_mask]
-
-        test_size = self.X.shape[0] * Config.TEST_SIZE / X_good.shape[0]
-
-        (
-            self.X_train,
-            self.X_test,
-            self.y_train,
-            self.y_test,
-            self.train_df,
-            self.test_df,
-            self.X_DL_train,
-            self.X_DL_test
-        ) = train_test_split(
-            X_good,
-            y_good,
-            df_good,
-            X_DL_good,
-            test_size=test_size,
-            random_state=0
-        )
-
+        y_good = y[y_series.isin(good_y_value)]
+        X_good = X[y_series.isin(good_y_value)]
+        y_bad = y[y_series.isin(good_y_value) == False]
+        X_bad = X[y_series.isin(good_y_value) == False]
+        test_size = X.shape[0] * Config.TEST_SIZE / X_good.shape[0]
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X_good, y_good,     test_size=test_size, random_state=0)
+        # X_train = np.concatenate((X_train, X_bad), axis=0)
+        # y_train = np.concatenate((y_train, y_bad), axis=0)
         self.y = y_good
         self.classes = good_y_value
         self.embeddings = self.X
@@ -114,9 +90,6 @@ class Data:
 
     def get_type_y_test(self):
         return self.y_test
-
-    def get_train_df(self):
-        return self.train_df
 
     def get_embeddings(self):
         return self.embeddings

@@ -3,8 +3,9 @@ import pandas as pd
 import random
 from preprocessing import get_input_data, remove_duplication, noise_remover
 from embeddings import get_tfidf_embd
-from data_loader import Data
-from model import RandomForest, HierarchyModel, ChainedModel
+from chain_targets import build_chained_targets
+from data_loader import ChainedData
+from model import RandomForest
 from model import AdaBoost
 from model import HistGB
 from model import SGD
@@ -17,6 +18,14 @@ class Pipeline:
         seed = Config.RANDOM_STATE
         random.seed(seed)
         np.random.seed(seed)
+        self.model_classes = [
+            ("RandomForest", RandomForest),
+            ("Hist_GB", HistGB),
+            ("SGD", SGD),
+            ("AdaBoost", AdaBoost),
+            ("Voting", Voting),
+            ("RandomTreesEmbedding", RandomTreesEnsemble),
+        ]
 
     def load_data(self):
         # load the input data
@@ -37,7 +46,7 @@ class Pipeline:
         return X, df
 
     def get_data_object(self, X: np.ndarray, df: pd.DataFrame):
-        return Data(X, df)
+        return ChainedData(X, df, Config.CHAIN_TARGET_COLUMNS)
 
     def model_predict(self, data, df, name):
         results = []
@@ -101,6 +110,7 @@ class Pipeline:
         grouped_df = df.groupby(Config.GROUPED)
         for name, group_df in grouped_df:
             print(name)
+            group_df = build_chained_targets(group_df)
             X, group_df = self.get_embeddings(group_df)
             data = self.get_data_object(X, group_df)
             self.perform_modelling(data, group_df, name)
