@@ -4,7 +4,7 @@ import random
 from preprocessing import get_input_data, remove_duplication, noise_remover
 from embeddings import get_tfidf_embd
 from data_loader import Data
-from model import RandomForest, HierarchyModel
+from model import RandomForest, HierarchyModel, ChainedModel
 from model import AdaBoost
 from model import HistGB
 from model import SGD
@@ -43,6 +43,12 @@ class Pipeline:
         results = []
         print("RandomForest")
         model = RandomForest("RandomForest", data.get_embeddings(), data.get_type())
+        model.train(data)
+        model.predict(data.X_test)
+        model.print_results(data)
+
+        print("ChainedModel")
+        model = ChainedModel("RandomForest", data.get_embeddings(), data.get_type())
         model.train(data)
         model.predict(data.X_test)
         model.print_results(data)
@@ -98,4 +104,3 @@ class Pipeline:
             X, group_df = self.get_embeddings(group_df)
             data = self.get_data_object(X, group_df)
             self.perform_modelling(data, group_df, name)
-

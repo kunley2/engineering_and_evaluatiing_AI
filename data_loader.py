@@ -74,20 +74,30 @@ class Data:
         self.y4_test = self.test_df["y4"].to_numpy() if "y4" in self.test_df else None
 
         if "y2" in self.train_df and "y3" in self.train_df:
-            self.y23_train = (self.train_df["y2"] + " || " + self.train_df["y3"]).to_numpy()
-            self.y23_test = (self.test_df["y2"] + " || " + self.test_df["y3"]).to_numpy()
+            y2_train = self.train_df["y2"].replace("", Config.MISSING_LABEL)
+            y2_test = self.test_df["y2"].replace("", Config.MISSING_LABEL)
+            y3_train = self.train_df["y3"].replace("", Config.MISSING_LABEL)
+            y3_test = self.test_df["y3"].replace("", Config.MISSING_LABEL)
+            self.y23_train = (y2_train + Config.CHAIN_SEPARATOR + y3_train).to_numpy()
+            self.y23_test = (y2_test + Config.CHAIN_SEPARATOR + y3_test).to_numpy()
 
         if "y2" in self.train_df and "y3" in self.train_df and "y4" in self.train_df:
+            y2_train = self.train_df["y2"].replace("", Config.MISSING_LABEL)
+            y2_test = self.test_df["y2"].replace("", Config.MISSING_LABEL)
+            y3_train = self.train_df["y3"].replace("", Config.MISSING_LABEL)
+            y3_test = self.test_df["y3"].replace("", Config.MISSING_LABEL)
+            y4_train = self.train_df["y4"].replace("", Config.MISSING_LABEL)
+            y4_test = self.test_df["y4"].replace("", Config.MISSING_LABEL)
             self.y234_train = (
-                self.train_df["y2"] + " || " +
-                self.train_df["y3"] + " || " +
-                self.train_df["y4"]
+                y2_train + Config.CHAIN_SEPARATOR +
+                y3_train + Config.CHAIN_SEPARATOR +
+                y4_train
             ).to_numpy()
 
             self.y234_test = (
-                self.test_df["y2"] + " || " +
-                self.test_df["y3"] + " || " +
-                self.test_df["y4"]
+                y2_test + Config.CHAIN_SEPARATOR +
+                y3_test + Config.CHAIN_SEPARATOR +
+                y4_test
             ).to_numpy()
 
     def get_type(self):
@@ -134,6 +144,37 @@ class Data:
             ("y234", "test"): getattr(self, "y234_test", None),
         }
         return mapping[(level, split)]
+
+    def get_level_data(self, level: str):
+        y_train = self.get_level_target(level, "train")
+        y_test = self.get_level_target(level, "test")
+
+        if y_train is None or y_test is None:
+            return None
+
+        train_counts = pd.Series(y_train).value_counts()
+        valid_classes = train_counts[train_counts >= Config.MIN_CLASS_COUNT].index
+
+        keep_train = pd.Series(y_train).isin(valid_classes).to_numpy()
+        keep_test = pd.Series(y_test).isin(valid_classes).to_numpy()
+
+        X_train = self.X_train[keep_train]
+        X_test = self.X_test[keep_test]
+        y_train = y_train[keep_train]
+        y_test = y_test[keep_test]
+
+        if len(X_train) == 0 or len(X_test) == 0:
+            return None
+
+        if len(pd.unique(y_train)) < 2:
+            return None
+
+        return {
+            "X_train": X_train,
+            "X_test": X_test,
+            "y_train": y_train,
+            "y_test": y_test,
+        }
 
     def get_branch_data(self, target_level: str, parent_filters: dict):
         train_mask = np.ones(len(self.train_df), dtype=bool)
