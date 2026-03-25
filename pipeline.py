@@ -3,9 +3,10 @@ import pandas as pd
 import random
 from preprocessing import get_input_data, remove_duplication, noise_remover
 from embeddings import get_tfidf_embd
+from data_loader import Data
 from chain_targets import build_chained_targets
 from data_loader import ChainedData
-from model import RandomForest, HierarchyModel
+from model import RandomForest
 from model import AdaBoost
 from model import HistGB
 from model import SGD
@@ -14,10 +15,11 @@ from model import RandomTreesEnsemble
 from config import Config
 
 class Pipeline:
-    def __init__(self):
+    def __init__(self, mode: str = Config.DEFAULT_PIPELINE_MODE):
         seed = Config.RANDOM_STATE
         random.seed(seed)
         np.random.seed(seed)
+        self.mode = mode
         self.model_classes = [
             ("RandomForest", RandomForest),
             ("Hist_GB", HistGB),
@@ -46,43 +48,34 @@ class Pipeline:
         return X, df
 
     def get_data_object(self, X: np.ndarray, df: pd.DataFrame):
-        return ChainedData(X, df, Config.CHAIN_TARGET_COLUMNS)
+        if self.mode == 'chained':
+            return ChainedData(X, df, Config.CHAIN_TARGET_COLUMNS)
+        return Data(X, df)
 
-    def model_predict(self, data, name):
+    def run_single_model(self, model_name, data):
+        print(model_name)
+        model_class = dict(self.model_classes)[model_name]
+        model = model_class(model_name, data.get_embeddings(), data.get_type())
+        model.train(data)
+        model.predict(data.get_X_test())
+        model.print_results(data)
+
+    def run_default_models(self, data):
+        for model_name, _ in self.model_classes:
+            self.run_single_model(model_name, data)
+
+    def run_chained_models(self, data, group_name):
         for target_name in data.get_target_names():
             data.set_active_target(target_name)
-            print(f"{name} | {target_name}")
-            for model_name, model_class in self.model_classes:
-                print(model_name)
-                model = model_class(model_name, data.get_embeddings(), data.get_type())
-                model.train(data)
-                model.predict(data.get_X_test())
-                model.print_results(data)
-
-    def build_flat_model(self, model_name, data):
-        return self.base_model_classes[model_name](model_name, data.get_embeddings(), data.get_type())
-
-    def build_hierarchy_model(self, base_model_name, data):
-        hierarchy_name = f"HierarchyModel[{base_model_name}]"
-        return HierarchyModel(
-            hierarchy_name,
-            data.get_embeddings(),
-            data.get_type(),
-            base_model_name=base_model_name,
-        )
-
-    def model_predict(self, data, df, name):
-        for model_name in Config.FLAT_MODELS:
-            model = self.build_flat_model(model_name, data)
-            self.run_single_model(model_name, model, data)
-
-        for base_model_name in Config.HIERARCHY_BASE_MODELS:
-            hierarchy_name = f"HierarchyModel[{base_model_name}]"
-            model = self.build_hierarchy_model(base_model_name, data)
-            self.run_single_model(hierarchy_name, model, data)
+            print(f"{group_name} | {target_name}")
+            for model_name, _ in self.model_classes:
+                self.run_single_model(model_name, data)
 
     def perform_modelling(self, data, df, name):
-        self.model_predict(data, df, name)
+        if self.mode == 'chained':
+            self.run_chained_models(data, name)
+            return
+        self.run_default_models(data)
 
     def run(self):
         df = self.load_data()
@@ -92,10 +85,11 @@ class Pipeline:
         grouped_df = df.groupby(Config.GROUPED)
         for name, group_df in grouped_df:
             print(name)
-            group_df = build_chained_targets(group_df)
+            if self.mode == 'chained':
+                group_df = build_chained_targets(group_df)
             X, group_df = self.get_embeddings(group_df)
             data = self.get_data_object(X, group_df)
-            if not data.get_target_names():
+            if self.mode == 'chained' and not data.get_target_names():
                 print(f"Skipping {name}: no valid chained targets found.")
                 continue
-            self.perform_modelling(data, name)
+            self.perform_modelling(data, group_df, name)

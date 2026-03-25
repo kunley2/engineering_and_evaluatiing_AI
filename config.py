@@ -20,3 +20,4 @@ class Config:
         'Type 2 + Type 3': 'chain_y2_y3',
         'Type 2 + Type 3 + Type 4': 'chain_y2_y3_y4',
     }
+    DEFAULT_PIPELINE_MODE = 'single_label'

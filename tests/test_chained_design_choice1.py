@@ -3,6 +3,7 @@ import pandas as pd
 
 from chain_targets import build_chained_targets
 from config import Config
+from data_loader import Data
 from data_loader import ChainedData
 from pipeline import Pipeline
 
@@ -126,7 +127,7 @@ def test_pipeline_runs_all_chained_targets_with_uniform_model_interface(monkeypa
     monkeypatch.setattr(Pipeline, "preprocess_data", fake_preprocess_data)
     monkeypatch.setattr(Pipeline, "get_embeddings", fake_get_embeddings)
 
-    pipeline = Pipeline()
+    pipeline = Pipeline(mode="chained")
     pipeline.model_classes = [("StubModel", StubModel)]
 
     pipeline.run()
@@ -143,3 +144,14 @@ def test_pipeline_runs_all_chained_targets_with_uniform_model_interface(monkeypa
         "Type 2 + Type 3 + Type 4",
     ]
     assert reported_targets == trained_targets
+
+
+def test_pipeline_defaults_to_original_data_object():
+    df = pd.DataFrame(make_group_rows("GroupA"))
+    df["y"] = df["y2"]
+    X = np.arange(len(df) * 3).reshape(len(df), 3)
+
+    pipeline = Pipeline()
+    data = pipeline.get_data_object(X, df)
+
+    assert isinstance(data, Data)
