@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from typing import Dict, List, Optional
 from config import Config
 import random
 
@@ -60,14 +61,14 @@ class ChainedData:
         self,
         X: np.ndarray,
         df: pd.DataFrame,
-        target_columns: dict[str, str],
+        target_columns: Dict[str, str],
     ) -> None:
         self.X = X
         self.df = df
         self.embeddings = X
         self.target_columns = target_columns
-        self.target_splits: dict[str, dict[str, np.ndarray | pd.Index]] = {}
-        self.active_target: str | None = None
+        self.target_splits: Dict[str, Dict[str, object]] = {}
+        self.active_target: Optional[str] = None
 
         for target_name, column_name in target_columns.items():
             target_series = df[column_name].astype(str)
@@ -114,7 +115,7 @@ class ChainedData:
         if self.target_splits:
             self.set_active_target(next(iter(self.target_splits)))
 
-    def get_target_names(self) -> list[str]:
+    def get_target_names(self) -> List[str]:
         return list(self.target_splits.keys())
 
     def set_active_target(self, target_name: str) -> None:
@@ -127,7 +128,7 @@ class ChainedData:
         self.y = split["y_all"]
         self.classes = split["classes"]
 
-    def get_active_target(self) -> str | None:
+    def get_active_target(self) -> Optional[str]:
         return self.active_target
 
     def get_type(self):

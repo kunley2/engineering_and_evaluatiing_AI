@@ -1,5 +1,6 @@
 import pandas as pd 
 import re
+from typing import List
 # import stanza
 # from stanza.pipeline.core import DownloadMethod
 # from transformers import pipeline
@@ -158,7 +159,7 @@ def noise_remover(df: pd.DataFrame):
     df = df.loc[df.y1.isin(good_y1)]
     return df
 
-def translate_to_en(texts:list[str]):
+def translate_to_en(texts: List[str]):
     
 
     t2t_m = Config.TRANSLATION_MODEL

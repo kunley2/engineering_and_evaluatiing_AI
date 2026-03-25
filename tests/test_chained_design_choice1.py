@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from typing import Dict, List
 
 from chain_targets import build_chained_targets
 from config import Config
@@ -8,7 +9,7 @@ from data_loader import ChainedData
 from pipeline import Pipeline
 
 
-def make_group_rows(group_name: str) -> list[dict]:
+def make_group_rows(group_name: str) -> List[Dict[str, object]]:
     rows = []
     for i in range(3):
         rows.append(
