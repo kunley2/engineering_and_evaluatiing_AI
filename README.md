@@ -36,6 +36,25 @@ This workflow describes the data and model pipeline steps in plain markdown:
 
 ### Hierarchical Model Architecture
 
+```mermaid
+flowchart TD
+    A["main.py"] --> B["pipeline.py\nHierarchicalPipeline"]
+    B --> C["preprocessing.py\nload_data + clean_data"]
+    C --> D["embeddings.py\nTF-IDF vectorizer"]
+    D --> E["Root Data Object\nfor Type 2"]
+    E --> F["Root Model Instance\n(e.g. RandomForest)"]
+    F --> G["Train and Predict Type 2"]
+    G --> H["Level-2 Filter Manager\nCreate subsets per Type 2 class"]
+    H --> I["Child Data Objects\none per Type 2 branch"]
+    I --> J["Child Model Instances\none per branch for Type 3"]
+    J --> K["Train and Predict Type 3 per branch"]
+    K --> L["Level-3 Filter Manager\nCreate subsets per Type 2 + Type 3 path"]
+    L --> M["Grandchild Data Objects\none per path"]
+    M --> N["Grandchild Model Instances\none per path for Type 4"]
+    N --> O["Train and Predict Type 4 per path"]
+    O --> P["Hierarchical Result Aggregator\nCombine predictions"]
+```
+
 ![Hierarchical Model Diagram](Design/Hierarchy_modelling_design.png)
 
 This workflow represents the hierarchy process flow:
