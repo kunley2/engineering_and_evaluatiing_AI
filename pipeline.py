@@ -61,7 +61,7 @@ class Pipeline:
         model.print_results(data)
 
     def perform_modelling(self, data, name):
-        self.model_predict(data, name)
+        self.run_single_model(data, name)
 
     def run(self):
         df = self.load_data()
