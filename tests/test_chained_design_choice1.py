@@ -147,12 +147,12 @@ def test_pipeline_runs_all_chained_targets_with_uniform_model_interface(monkeypa
     assert reported_targets == trained_targets
 
 
-def test_pipeline_defaults_to_original_data_object():
+def test_pipeline_single_label_mode_uses_original_data_object():
     df = pd.DataFrame(make_group_rows("GroupA"))
     df["y"] = df["y2"]
     X = np.arange(len(df) * 3).reshape(len(df), 3)
 
-    pipeline = Pipeline()
+    pipeline = Pipeline(mode="single_label")
     data = pipeline.get_data_object(X, df)
 
     assert isinstance(data, Data)
