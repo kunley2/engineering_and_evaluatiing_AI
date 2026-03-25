@@ -60,22 +60,8 @@ class Pipeline:
         model.predict(data.get_X_test())
         model.print_results(data)
 
-    def run_default_models(self, data):
-        for model_name, _ in self.model_classes:
-            self.run_single_model(model_name, data)
-
-    def run_chained_models(self, data, group_name):
-        for target_name in data.get_target_names():
-            data.set_active_target(target_name)
-            print(f"{group_name} | {target_name}")
-            for model_name, _ in self.model_classes:
-                self.run_single_model(model_name, data)
-
-    def perform_modelling(self, data, df, name):
-        if self.mode == 'chained':
-            self.run_chained_models(data, name)
-            return
-        self.run_default_models(data)
+    def perform_modelling(self, data, name):
+        self.model_predict(data, name)
 
     def run(self):
         df = self.load_data()

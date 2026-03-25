@@ -32,6 +32,7 @@ class Data():
         self.classes = good_y_value
         self.embeddings = X
 
+
     def get_type(self):
         return  self.y
     def get_X_train(self):
