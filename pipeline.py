@@ -3,9 +3,8 @@ import pandas as pd
 import random
 from preprocessing import get_input_data, remove_duplication, noise_remover
 from embeddings import get_tfidf_embd
-from data_loader import Data
+from data_loader import Data, ChainedData
 from chain_targets import build_chained_targets
-from data_loader import ChainedData
 from model import RandomForest
 from model import AdaBoost
 from model import HistGB
@@ -60,8 +59,22 @@ class Pipeline:
         model.predict(data.get_X_test())
         model.print_results(data)
 
-    def perform_modelling(self, data, name):
-        self.run_single_model(data, name)
+    def run_default_models(self, data):
+        for model_name, _ in self.model_classes:
+            self.run_single_model(model_name, data)
+
+    def run_chained_models(self, data, group_name):
+        for target_name in data.get_target_names():
+            data.set_active_target(target_name)
+            print(f"{group_name} | {target_name}")
+            for model_name, _ in self.model_classes:
+                self.run_single_model(model_name, data)
+
+    def perform_modelling(self, data, df, name):
+        if self.mode == 'chained':
+            self.run_chained_models(data, name)
+            return
+        self.run_default_models(data)
 
     def run(self):
         df = self.load_data()
